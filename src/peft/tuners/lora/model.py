@@ -184,7 +184,18 @@ class LoraModel(BaseTuner):
 
         # Regexp matching - Find key which matches current target_name in patterns provided
         pattern_keys = list(chain(lora_config.rank_pattern.keys(), lora_config.alpha_pattern.keys()))
-        target_name_key = next(filter(lambda key: re.match(rf".*\.{key}$", current_key), pattern_keys), current_key)
+        #target_name_key = next(filter(lambda key: re.match(rf".*\.{key}$", current_key), pattern_keys), current_key)
+        # Regex is extremely slow.  This can speedup LoRA loading 20x with rank patterns and alpha patterns
+        parts = current_key.split('.')
+
+        # Try to find a match starting from the end of the key
+        target_name_key = current_key  # Default to current_key if no match found
+        for i in range(len(parts), 0, -1):
+            potential_match = '.'.join(parts[i-1:])
+            if potential_match in pattern_keys:
+                target_name_key = potential_match
+                break
+
         r = lora_config.rank_pattern.get(target_name_key, lora_config.r)
         alpha = lora_config.alpha_pattern.get(target_name_key, lora_config.lora_alpha)
 
